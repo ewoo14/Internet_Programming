@@ -1,10 +1,11 @@
 <template>
   <div class="login-container">
     <div class="login-box">
+      <h1 class="login-header">My Diary</h1>
       <div class="inputs-container">
         <div class="fields-container">
-          <input type="email" placeholder="이메일" class="input-field" v-model="email" />
-          <input type="password" placeholder="비밀번호" class="input-field" v-model="password" />
+          <input type="email" placeholder="이메일" class="input-field" v-model="email" @keyup.enter="login" />
+          <input type="password" placeholder="비밀번호" class="input-field" v-model="password" @keyup.enter="login" />
         </div>
         <button class="login-btn" @click="login">로그인</button>
       </div>
@@ -57,35 +58,49 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  height: 80vh;
 }
 
 .login-box {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  padding: 20px;
-  border: 1px solid #000;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px 20px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #f9f9f9;
+  margin: auto;
+  width: 300px;
+  height: 20vh;
 }
 
 .inputs-container {
   display: flex;
-  justify-content: space-between; /* 필드와 버튼 사이에 공간을 만듭니다 */
+  justify-content: space-between;
 }
 
 .fields-container {
   display: flex;
-  flex-direction: column; /* 필드들을 수직으로 정렬합니다 */
+  flex-direction: column;
+}
+
+.login-header {
+  font-size: 2em;
+  font-weight: bold;
+  margin-bottom: 20px;
+  margin-top: 0;
 }
 
 .input-field {
-  margin-bottom: 10px; /* 입력 필드 사이의 간격 */
-  width: 150px; /* 입력 필드의 너비를 조정합니다 */
+  margin-bottom: 10px;
+  width: 150px;
 }
 
 .login-btn {
-  height: 52px; /* 로그인 버튼의 높이를 조정합니다 */
-  width: 52px; /* 로그인 버튼의 너비를 조정합니다 */
+  height: 52px;
+  width: 52px;
   margin-left: 20px;
   background-color: blue;
   color: white;
@@ -94,6 +109,7 @@
 
 .links {
   text-align: center;
-  width: 100%; /* 링크 부분 너비 */
+  width: 100%;
+  padding-top: 10px;
 }
 </style>

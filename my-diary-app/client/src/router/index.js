@@ -3,7 +3,6 @@ import UserLogin from '../components/UserLogin.vue';
 import UserRegister from '../components/UserRegister.vue';
 import MainPage from '../components/MainPage.vue';
 import MyPage from '../components/MyPage.vue';
-import WriteDiary from '../components/WriteDiary.vue';
 
 // 라우터 정의
 const routes = [
@@ -31,11 +30,6 @@ const routes = [
     path: '/mypage',
     name: 'MyPage',
     component: MyPage
-  },
-  {
-    path: '/writediary',
-    name: 'WriteDiary',
-    component: WriteDiary
   },
 ];
 

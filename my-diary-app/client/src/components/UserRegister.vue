@@ -4,8 +4,9 @@
     <form @submit.prevent="register">
       <div>
         <label for="email">이메일:</label>
-        <input type="email" id="email" v-model="userData.email" @input="validateEmail" :class="{ 'is-invalid': !isEmailValid, 'is-valid': isEmailValid }" required>
+        <input type="email" id="email" v-model="userData.email" @input="validateEmail" :class="{ 'is-invalid': !isEmailValid || emailExists, 'is-valid': isEmailValid && !emailExists }" required>
         <p v-if="!isEmailValid" class="warning-text">유효한 이메일 주소를 입력해주세요.</p>
+        <p v-else-if="emailExists" class="warning-text">이미 존재하는 메일입니다.</p>
       </div>
       <div>
         <label for="password">비밀번호:</label>
@@ -69,13 +70,31 @@ export default {
     validateEmail() {
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       this.isEmailValid = emailPattern.test(this.userData.email);
+      this.emailExists = false; // 이메일 중복 확인 변수
+
+      if (this.isEmailValid) {
+        // 이메일 형식이 유효한 경우, 데이터베이스에서 중복 확인
+        axios.get(`http://localhost:3000/check-email/${this.userData.email}`)
+          .then(() => {
+            // 이메일이 중복되지 않음
+            this.errorMessage = '';
+          })
+          .catch(error => {
+            if (error.response && error.response.status === 409) { // 409 Conflict - 이메일 중복
+              this.errorMessage = '이미 존재하는 메일입니다.';
+              this.emailExists = true;
+            } else {
+              this.errorMessage = error.response.data.message || '이메일 검증 중 오류가 발생했습니다.';
+            }
+          });
+      }
     },
     // 비밀번호 필드에 대한 유효성 검사
     validatePassword() {
-    this.isPasswordEntered = this.userData.password.length > 0;
-    this.isPasswordMatch = this.userData.password === this.confirmPassword;
-    this.isPasswordValid = this.isPasswordEntered && this.isPasswordMatch;
-  },
+      this.isPasswordEntered = this.userData.password.length > 0;
+      this.isPasswordMatch = this.userData.password === this.confirmPassword;
+      this.isPasswordValid = this.isPasswordEntered && this.isPasswordMatch;
+    },
     // 이름 필드에 대한 유효성 검사
     validateName() {
       this.isNameValid = this.userData.name.length > 0;
