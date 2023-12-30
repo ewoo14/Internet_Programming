@@ -44,7 +44,7 @@ function decrypt(text) {
 const dbConfig = {
     host: 'localhost',
     user: 'root',
-    password: 'Angelic1440!'
+    password: '8027'
 };
 
 // MySQL 데이터베이스 연결
