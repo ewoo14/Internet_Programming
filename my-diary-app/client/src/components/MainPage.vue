@@ -45,6 +45,12 @@ export default {
     }
   },
   methods: {
+    getCurrentDateInKST() {
+      const now = new Date();
+      const kstTime = now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' });
+      return new Date(kstTime).toISOString().substr(0, 10);
+    },
+    
     logout() {
       // 로컬 스토리지에서 사용자 ID 삭제
       localStorage.removeItem('userId');
