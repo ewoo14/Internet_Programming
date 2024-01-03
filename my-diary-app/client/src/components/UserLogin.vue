@@ -105,6 +105,7 @@
   background-color: blue;
   color: white;
   cursor: pointer;
+  border: none;
 }
 
 .links {
