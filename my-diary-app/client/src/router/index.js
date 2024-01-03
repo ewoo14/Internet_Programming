@@ -3,6 +3,8 @@ import UserLogin from '../components/UserLogin.vue';
 import UserRegister from '../components/UserRegister.vue';
 import MainPage from '../components/MainPage.vue';
 import MyPage from '../components/MyPage.vue';
+import FindAccount from '../components/FindAccount';
+import ResetPassword from '../components/ResetPassword';
 
 // 라우터 정의
 const routes = [
@@ -30,6 +32,16 @@ const routes = [
     path: '/mypage',
     name: 'MyPage',
     component: MyPage
+  },
+  {
+    path: '/find-account',
+    name: 'FindAccount',
+    component: FindAccount
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: ResetPassword,
   },
 ];
 

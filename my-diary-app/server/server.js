@@ -44,7 +44,7 @@ function decrypt(text) {
 const dbConfig = {
     host: 'localhost',
     user: 'root',
-    password: '8027'
+    password: 'Angelic1440!'
 };
 
 // MySQL 데이터베이스 연결
@@ -261,6 +261,64 @@ function initializeServer() {
       // 조회된 일기 반환
       const decryptedContent = decrypt(results[0].content);
     res.send({ content: decryptedContent });
+    });
+  });
+
+  // 계정 찾기 라우트
+  app.post('/findAccount', (req, res) => {
+    const { name, phone } = req.body;
+
+    db.query('SELECT email FROM users WHERE name = ? AND phone = ?', [name, phone], (err, results) => {
+      if (err) {
+        logAction(name, `FindAccount request error: ${err.message}`);
+        return res.status(500).send({ message: 'Server error' });
+      }
+
+      if (results.length > 0) {
+        const email = results[0].email;
+        logAction(name, `FindAccount request: Account found with email ${email}`);
+        res.send({ email: email });
+      } else {
+        logAction(name, 'FindAccount request: No account found');
+        res.status(404).send({ message: 'No account found' });
+      }
+    });
+  });
+
+  // 비밀번호 재설정 라우트
+  app.post('/resetPassword', (req, res) => {
+    const { email, name, phone } = req.body;
+
+    db.query('SELECT id FROM users WHERE email = ? AND name = ? AND phone = ?', [email, name, phone], (err, results) => {
+      if (err) {
+        logAction(email, `ResetPassword request error: ${err.message}`);
+        return res.status(500).send({ message: 'Server error' });
+      }
+
+      if (results.length > 0) {
+        const userId = results[0].id;
+        logAction(email, `ResetPassword request: User found with ID ${userId}`);
+        res.send({ userId: userId });
+      } else {
+        logAction(email, 'ResetPassword request: No user found');
+        res.status(404).send({ message: 'No user found' });
+      }
+    });
+  });
+
+  // 비밀번호 업데이트 라우트
+  app.post('/updatePassword', async (req, res) => {
+    const { userId, newPassword } = req.body;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    db.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId], (err, results) => {
+      if (err) {
+        logAction(userId, `UpdatePassword request error: ${err.message}`);
+        return res.status(500).send({ message: 'Server error' });
+      }
+
+      logAction(userId, `UpdatePassword request: Password updated successfully`);
+      res.send({ message: 'Password updated successfully' });
     });
   });
 
