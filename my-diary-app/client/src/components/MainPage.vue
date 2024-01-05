@@ -47,8 +47,9 @@ export default {
   methods: {
     getCurrentDateInKST() {
       const now = new Date();
-      const kstTime = now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' });
-      return new Date(kstTime).toISOString().substr(0, 10);
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000); // UTC 시간
+      const kstTime = new Date(utc + (3600000 * 9)); // UTC+9
+      return kstTime.toISOString().split('T')[0];
     },
 
     logout() {
@@ -124,8 +125,16 @@ export default {
     }
   },
   created() {
-      this.fetchUserName(); // 컴포넌트 생성 시 사용자 이름 조회
+    this.fetchUserName(); // 컴포넌트 생성 시 사용자 이름 조회
+    axios.get('http://localhost:3000/current-kst-date')
+    .then(response => {
+      this.selectedDate = response.data.date;
       this.fetchDiary(); // 컴포넌트 생성 시 일기장 조회
+    })
+    .catch(error => {
+      console.error('Error fetching current KST date:', error);
+      this.fetchDiary(); // 컴포넌트 생성 시 일기장 조회
+    });
   }
 };
 </script>

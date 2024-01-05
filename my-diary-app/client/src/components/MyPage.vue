@@ -10,7 +10,7 @@
 
     <!-- 내 정보 -->
     <div class="user-info-section" @click="showUserInfo">
-      내 정보
+      내 정보 조회
     </div>
 
     <!-- 비밀번호 재설정 -->
@@ -47,7 +47,12 @@ export default {
         });
     },
     ResetPassword() {
-      this.$router.push('/reset-password'); // 비밀번호 재설정 페이지로 이동
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        alert("사용자 ID를 불러올 수 없습니다.");
+        return;
+      }
+      this.$router.push({ path: '/reset-password', query: { userId } });
     },
     fetchUserName() {
       axios.get('http://localhost:3000/username', {
