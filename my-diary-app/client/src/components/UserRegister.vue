@@ -109,19 +109,42 @@ export default {
         .then(response => {
           // 회원가입 성공 시 처리 로직
           console.log('회원가입 성공:', response.data.message);
-          this.errorMessage = ''; // 오류 메시지 초기화
-          // 회원가입 성공 메시지 표시
-          this.errorMessage = response.data.message;
+          alert("회원가입이 완료되었습니다.\n이메일 인증을 진행해주세요.\n인증 링크는 이메일로 발송되었습니다.");
           // 로그인 페이지나 홈페이지로 리디렉션
           this.$router.push('/userlogin');
         })
         .catch(error => {
-          if (error.response && error.response.data) {
+          // 오류 메시지 초기화
+          this.errorMessage = '';
+
+          if (error.response) {
+            // 서버에서 반환된 오류 메시지 처리
             this.errorMessage = error.response.data.message;
+            alert(`회원가입에 실패했습니다: ${this.errorMessage}`);
           } else {
+            // 서버 오류 또는 네트워크 문제로 인한 회원가입 실패
             this.errorMessage = "서버 오류 또는 네트워크 문제로 인한 회원가입 실패";
+            alert(this.errorMessage);
           }
+
+          // 폼 데이터 초기화 및 페이지 새로고침
+          this.resetFormData();
+          location.reload();
         });
+    },
+    resetFormData() {
+      // 사용자 데이터를 초기 상태로 재설정
+      this.userData.email = '';
+      this.userData.password = '';
+      this.userData.name = '';
+      this.userData.phone = '';
+      this.confirmPassword = '';
+      // 유효성 검사 상태도 초기화할 수 있습니다.
+      this.isNameValid = false;
+      this.isPasswordEntered = false;
+      this.isPasswordValid = false;
+      this.isEmailValid = false;
+      this.isPhoneValid = false;
     }
   }
 };

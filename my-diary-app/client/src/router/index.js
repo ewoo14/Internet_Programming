@@ -5,6 +5,7 @@ import MainPage from '../components/MainPage.vue';
 import MyPage from '../components/MyPage.vue';
 import FindAccount from '../components/FindAccount';
 import ResetPassword from '../components/ResetPassword';
+import EmailVerification from '../components/EmailVerification.vue';
 
 // 라우터 정의
 const routes = [
@@ -42,6 +43,11 @@ const routes = [
     path: '/reset-password',
     name: 'ResetPassword',
     component: ResetPassword,
+  },
+  {
+    path: '/verify-email',
+    name: 'EmailVerification',
+    component: EmailVerification
   },
 ];
 

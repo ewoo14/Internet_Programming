@@ -39,14 +39,28 @@
       axios.post('http://localhost:3000/userlogin', userData)
         .then(response => {
           // 로그인 성공
+          alert("My Diary에 오신 것을 환영합니다.");
           console.log('로그인 성공:', response.data);
           localStorage.setItem('userId', response.data.userId);
           router.push('/mainpage');
         })
         .catch(error => {
           // 로그인 실패
+          if (error.response) {
+            if (error.response.status === 401) {
+              if (error.response.data.message === '이메일 인증이 완료되지 않았습니다.') {
+                alert("이메일 인증이 완료되지 않았습니다.");
+              } else {
+                alert("잘못된 정보입니다.\n다시 확인해주세요.");
+              }
+            } else {
+              alert("알 수 없는 오류가 발생했습니다.");
+            }
+          } else {
+            alert("알 수 없는 오류가 발생했습니다.");
+          }
           console.error('로그인 실패:', error.response);
-          this.errorMessage = error.response.data.message || "로그인에 실패했습니다.";
+          this.errorMessage = error.response ? error.response.data.message : "로그인에 실패했습니다.";
         });
       }
     }

@@ -1,9 +1,11 @@
+require('dotenv').config({ path: __dirname + '/.env' });
 const express = require('express');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 // 타임스탬프 함수
 const moment = require('moment-timezone');
@@ -14,6 +16,11 @@ function getCurrentTimestamp() {
 // 로그를 기록하는 함수
 function logAction(email, message) {
     console.log(`[${getCurrentTimestamp()}] [${email}] ${message}`);
+}
+
+// 5자리 랜덤 숫자 생성 함수
+function generateRandomUserId() {
+  return Math.floor(10000 + Math.random() * 90000);
 }
 
 // 암호화 키
@@ -40,11 +47,71 @@ function decrypt(text) {
     return decrypted.toString();
 }
 
+// 이메일 서비스 설정
+const transporter = nodemailer.createTransport({
+  service: 'Naver',
+  host: 'smtp.naver.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.NAVER_USER,
+    pass: process.env.NAVER_PASS
+  },
+  tls: {
+    rejectUnauthorized: false,
+    // TLSv1.2
+    secureProtocol: 'TLSv1_2_method'
+  }
+});
+
+// 이메일 인증 토큰 생성 함수
+function generateEmailVerificationToken() {
+  return crypto.randomBytes(20).toString('hex');
+}
+
+// 이메일 발송 함수
+async function sendVerificationEmail(email, emailVerificationToken, tokenExpirationTime) {
+  const formattedExpirationTime = tokenExpirationTime.format('YYYY-MM-DD HH:mm:ss');
+  const verificationLink = `http://localhost:8080/verify-email?token=${emailVerificationToken}`;
+  const mailOptions = {
+    from: 'ewoo2821@naver.com',
+    to: email,
+    subject: '이메일 인증',
+    html: `<p>이메일 인증을 위해 아래 링크를 클릭해주세요. 해당 링크는 <strong>${formattedExpirationTime}</strong>까지 유효합니다.\n\n<a href="${verificationLink}">이메일 인증</a></p>`
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logAction(email, `Verification email sent: ${info.response}`);
+  } catch (error) {
+    console.log("이메일 사용자:", process.env.EMAIL_USER);
+    console.log("이메일 비밀번호:", process.env.EMAIL_PASS);
+    console.error(`Error sending verification email to ${email}: ${error.message}`);
+    throw new Error('Error sending verification email');
+  }
+}
+
+// 만료된 계정 삭제 함수
+function deleteExpiredAccounts() {
+  const query = `
+    DELETE FROM users 
+    WHERE email_verified = 0 AND 
+    token_expiration < NOW()`;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error(`Error deleting expired accounts: ${err.message}`);
+    } else {
+      console.log(`Deleted expired accounts: ${results.affectedRows}`);
+    }
+  });
+}
+
 // 데이터베이스 연결 설정
 const dbConfig = {
     host: 'localhost',
     user: 'root',
-    password: 'Angelic1440!'
+    password: '8027'
 };
 
 // MySQL 데이터베이스 연결
@@ -54,49 +121,69 @@ const db = mysql.createConnection(dbConfig);
 function initializeServer() {
   // 데이터베이스 연결
   db.connect(err => {
-      if (err) {
-          throw err;
+    if (err) {
+        throw err;
+    }
+    console.log('MySQL successfully connected!');
+
+    // diaryDB 데이터베이스 생성
+    db.query("CREATE DATABASE IF NOT EXISTS diaryDB", (err, result) => {
+      if (err) throw err;
+
+      if (result.warningCount === 0) {
+          console.log("DiaryDB created!");
+      } else {
+          console.log("Database already exists!");
       }
-      console.log('MySQL successfully connected!');
 
-      // diaryDB 데이터베이스 생성
-      db.query("CREATE DATABASE IF NOT EXISTS diaryDB", (err, result) => {
+      // diaryDB 사용 설정
+      db.changeUser({database: 'diaryDB'}, (err) => {
           if (err) throw err;
-          console.log("Database created or already exists");
 
-          // diaryDB 사용 설정
-          db.changeUser({database: 'diaryDB'}, (err) => {
+          // users 테이블 생성
+          const createUsersTable = `
+          CREATE TABLE IF NOT EXISTS users (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              email VARCHAR(255) NOT NULL UNIQUE,
+              password VARCHAR(255) NOT NULL,
+              name VARCHAR(100) NOT NULL,
+              phone VARCHAR(20) NOT NULL,
+              email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+              email_verification_token VARCHAR(255),
+              token_expiration DATETIME
+          )`;
+
+          db.query(createUsersTable, (err, result) => {
               if (err) throw err;
 
-              // users 테이블 생성
-              const createUsersTable = `
-                  CREATE TABLE IF NOT EXISTS users (
-                      id INT AUTO_INCREMENT PRIMARY KEY,
-                      email VARCHAR(255) NOT NULL UNIQUE,
-                      password VARCHAR(255) NOT NULL,
-                      name VARCHAR(100) NOT NULL,
-                      phone VARCHAR(20) NOT NULL
-                  )`;
-              db.query(createUsersTable, (err, result) => {
-                  if (err) throw err;
-                  console.log("Users table created or already exists");
+              if (result.warningCount === 0) {
+                  console.log("Table 'users' created!");
+              } else {
+                  console.log("Table 'users' already exists!");
+              }
 
-                  // diaries 테이블 생성
-                  const createDiariesTable = `
-                      CREATE TABLE IF NOT EXISTS diaries (
-                          diary_id INT AUTO_INCREMENT PRIMARY KEY,
-                          user_id INT,
-                          date DATE,
-                          content TEXT,
-                          FOREIGN KEY (user_id) REFERENCES users(id)
-                      )`;
-                  db.query(createDiariesTable, (err, result) => {
-                      if (err) throw err;
-                      console.log("Diaries table created or already exists");
-                  });
+              // diaries 테이블 생성
+              const createDiariesTable = `
+                  CREATE TABLE IF NOT EXISTS diaries (
+                      diary_id INT AUTO_INCREMENT PRIMARY KEY,
+                      user_id INT,
+                      date DATE,
+                      content TEXT,
+                      FOREIGN KEY (user_id) REFERENCES users(id)
+                  )`;
+              db.query(createDiariesTable, (err, result) => {
+                  if (err) throw err;
+
+                  if (result.warningCount === 0) {
+                      console.log("Table 'diaries' created!");
+                  } else {
+                      console.log("Table 'diaries' already exists!");
+                  }
               });
           });
+          deleteExpiredAccounts();
       });
+    });
   });
 
   // Express 앱 설정
@@ -107,20 +194,47 @@ function initializeServer() {
   // 회원가입 라우트
   app.post('/userregister', async (req, res) => {
     try {
-        const { email, password, name, phone } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const query = 'INSERT INTO users (email, password, name, phone) VALUES (?, ?, ?, ?)';
-        db.query(query, [email, hashedPassword, name, phone], (err, results) => {
-            if (err) {
-                logAction(email, `Error in registering account: ${err.message}`);
-                throw err;
-            }
-            logAction(email, `Account registered`);
-            res.status(200).send({ message: 'User registered successfully' });
-        });
+      // 고유 사용자 ID 생성
+      let userId;
+      let isUnique = false;
+      while (!isUnique) {
+        userId = generateRandomUserId();
+        const checkUserId = await db.promise().query('SELECT id FROM users WHERE id = ?', [userId]);
+        if (checkUserId[0].length === 0) {
+          isUnique = true;
+        }
+      }
+  
+      // 요청으로부터 사용자 정보 추출
+      const { email, password, name, phone } = req.body;
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
+      // 이메일 인증 토큰 생성
+      const emailVerificationToken = generateEmailVerificationToken();
+      const currentTimestamp = getCurrentTimestamp();
+      const tokenExpirationTime = moment(currentTimestamp).add(3, 'hours');
+  
+      // 사용자 정보 저장
+      const insertQuery = 'INSERT INTO users (id, email, password, name, phone, email_verification_token, token_expiration) VALUES (?, ?, ?, ?, ?, ?, ?)';
+      db.query(insertQuery, [userId, email, hashedPassword, name, phone, emailVerificationToken, tokenExpirationTime.format('YYYY-MM-DD HH:mm:ss')], async (err, results) => {
+        if (err) {
+          logAction(email, `Error in registering account: ${err.message}`);
+          return res.status(500).send({ message: 'Error in registering account' });
+        }
+        logAction(email, `Account registered with ID ${userId}`);
+  
+        // 이메일 발송 로직 호출
+        try {
+          const tokenExpirationTime = moment().add(3, 'hours');
+          await sendVerificationEmail(email, emailVerificationToken, tokenExpirationTime);
+          res.status(200).send({ message: 'Verification email sent successfully' });
+        } catch (error) {
+          res.status(500).send({ message: error.message });
+        }
+      });
     } catch (err) {
-        logAction(email, `Server error on registering: ${err.message}`);
-        res.status(500).send({ message: 'Server error' });
+      logAction(email, `Server error on registering: ${err.message}`);
+      res.status(500).send({ message: 'Server error' });
     }
   });
 
@@ -152,19 +266,26 @@ function initializeServer() {
 
     // 사용자 이메일로 데이터베이스 조회
     db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).send({ message: 'Server error' });
-        }
+      if (err) {
+        console.error(err);
+        return res.status(500).send({ message: 'Server error' });
+      }
 
-        // 사용자가 존재하고 비밀번호가 일치하는지 확인
-        if (results.length && await bcrypt.compare(password, results[0].password)) {
-            logAction(email, 'Login successful');
-            res.status(200).send({ message: 'Login successful', userId: results[0].id });
-        } else {
-            logAction(email, 'Login error');
-            res.status(401).send({ message: 'Login error' });
-        }
+      // 사용자가 존재하지 않거나 비밀번호가 일치하지 않는 경우
+      if (!results.length || !await bcrypt.compare(password, results[0].password)) {
+        logAction(email, 'Login error');
+        return res.status(401).send({ message: '잘못된 이메일 또는 비밀번호입니다.' });
+      }
+
+      // 이메일 인증 여부 확인
+      if (!results[0].email_verified) {
+        logAction(email, 'Email not verified');
+        return res.status(401).send({ message: '이메일 인증이 완료되지 않았습니다.' });
+      }
+
+      // 로그인 성공
+      logAction(email, 'Login successful');
+      res.status(200).send({ message: 'Login successful', userId: results[0].id });
     });
   });
 
@@ -322,6 +443,27 @@ function initializeServer() {
     });
   });
 
+  // 사용자 정보 조회 라우트
+  app.get('/userinfo/:userId', (req, res) => {
+    const userId = req.params.userId;
+
+    db.query('SELECT email, name, phone FROM users WHERE id = ?', [userId], (err, results) => {
+      if (err) {
+        logAction(userId, `Userinfo request error: ${err.message}`);
+        return res.status(500).send({ message: 'Server error' });
+      }
+
+      if (results.length > 0) {
+        const userInfo = results[0];
+        logAction(userId, `Userinfo request: User information retrieved`);
+        res.send(userInfo);
+      } else {
+        logAction(userId, 'Userinfo request: User not found');
+        res.status(404).send({ message: 'User not found' });
+      }
+    });
+  });
+
   // 서버 시작
   app.listen(3000, () => {
       console.log('Server is running on port 3000');
@@ -330,3 +472,6 @@ function initializeServer() {
 
 // 서버 초기화 실행
 initializeServer();
+
+// 주기적으로 만료된 비인증 계정 삭제(매 10분)
+setInterval(deleteExpiredAccounts, 600000);

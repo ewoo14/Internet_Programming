@@ -20,7 +20,7 @@
         <hr class="divider" />
   
         <!-- 비밀번호 찾기 섹션 -->
-        <h1 class="find-account-header">비밀번호 찾기</h1>
+        <h1 class="find-account-header">비밀번호 재설정</h1>
         <div class="inputs-container">
           <div class="fields-container">
             <div>
