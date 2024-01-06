@@ -136,9 +136,9 @@ async function initializeServer() {
   try {
     // 데이터베이스 연결 설정
     const dbConfig = {
-      host: 'localhost',
-      user: 'root',
-      password: 'Angelic1440!',
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
     };
 
     // MySQL 데이터베이스 연결
