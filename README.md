@@ -17,16 +17,3 @@ Then diaryDB database will be created with tables in it automatically.
 ```
 npm run serve
 ```
-
-## Warning!
-First of all, you have to unzip 'node_modules.zip' in client folder!!!
-
-And when you running backend server, if error occurs like bcrypt,
-```
-npm uninstall bcrypt
-```
-and also
-```
-npm install bcrypt
-```
-in root directory.
