@@ -1,6 +1,9 @@
 This is MyDiary homepage on that you can write your personal diary.
+
 You have to install node.js and MySQL first.
+
 All modules that you should install through npm are described in package.json and package-lock.json
+
 In server.js you should fill out section with your SQL info.
 
 ### In server folder for running backend server
