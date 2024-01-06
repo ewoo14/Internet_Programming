@@ -71,7 +71,7 @@ export default {
     },
 
     fetchUserName() {
-      axios.get('http://localhost:3000/username', {
+      axios.get(`${process.env.VUE_APP_BACKEND_URL}/username`, {
           params: {
           userId: localStorage.getItem('userId') // 사용자 ID 가져오기
           }
@@ -90,7 +90,7 @@ export default {
       this.newDiaryContent = '';
 
       const userId = localStorage.getItem('userId');
-      axios.get(`http://localhost:3000/diary/${this.selectedDate}`, {
+      axios.get(`${process.env.VUE_APP_BACKEND_URL}/diary/${this.selectedDate}`, {
         params: { userId }
       })
       .then(response => {
@@ -109,7 +109,7 @@ export default {
 
     saveDiary() {
       const userId = localStorage.getItem('userId');
-      axios.post('http://localhost:3000/savediary', {
+      axios.post(`${process.env.VUE_APP_BACKEND_URL}/savediary`, {
         user_id: userId,
         date: this.selectedDate,
         content: this.newDiaryContent
@@ -126,7 +126,7 @@ export default {
   },
   created() {
     this.fetchUserName(); // 컴포넌트 생성 시 사용자 이름 조회
-    axios.get('http://localhost:3000/current-kst-date')
+    axios.get(`${process.env.VUE_APP_BACKEND_URL}/current-kst-date`)
     .then(response => {
       this.selectedDate = response.data.date;
       this.fetchDiary(); // 컴포넌트 생성 시 일기장 조회

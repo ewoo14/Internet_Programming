@@ -74,7 +74,7 @@ export default {
 
       if (this.isEmailValid) {
         // 이메일 형식이 유효한 경우, 데이터베이스에서 중복 확인
-        axios.get(`http://localhost:3000/check-email/${this.userData.email}`)
+        axios.get(`${process.env.VUE_APP_BACKEND_URL}/check-email/${this.userData.email}`)
           .then(() => {
             // 이메일이 중복되지 않음
             this.errorMessage = '';
@@ -105,7 +105,7 @@ export default {
       this.isPhoneValid = phonePattern.test(this.userData.phone);
     },
     register() {
-      axios.post('http://localhost:3000/userregister', this.userData)
+      axios.post(`${process.env.VUE_APP_BACKEND_URL}/userregister`, this.userData)
         .then(response => {
           // 회원가입 성공 시 처리 로직
           console.log('회원가입 성공:', response.data.message);

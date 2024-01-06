@@ -20,7 +20,7 @@
     methods: {
         verifyEmail() {
             const token = this.$route.query.token; // URL에서 토큰 가져오기
-            axios.get(`http://localhost:3000/verify-email?token=${token}`)
+            axios.get(`${process.env.VUE_APP_BACKEND_URL}/verify-email?token=${token}`)
                 .then(response => {
                 this.verificationMessage = response.data.message;
                 })

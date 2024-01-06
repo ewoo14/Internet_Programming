@@ -36,7 +36,7 @@ export default {
         alert("사용자 정보를 불러올 수 없습니다.");
         return;
       }
-      axios.get(`http://localhost:3000/userinfo/${userId}`)
+      axios.get(`${process.env.VUE_APP_BACKEND_URL}/userinfo/${userId}`)
         .then(response => {
           const userInfo = response.data;
           alert(`귀하의 정보입니다.\n이메일: ${userInfo.email}\n이름: ${userInfo.name}\n전화번호: ${userInfo.phone}`);
@@ -55,7 +55,7 @@ export default {
       this.$router.push({ path: '/reset-password', query: { userId } });
     },
     fetchUserName() {
-      axios.get('http://localhost:3000/username', {
+      axios.get(`${process.env.VUE_APP_BACKEND_URL}/username`, {
           params: {
           userId: localStorage.getItem('userId') // 사용자 ID 가져오기
           }

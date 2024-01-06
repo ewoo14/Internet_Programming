@@ -36,7 +36,7 @@
         password: this.password
       };
       
-      axios.post('http://localhost:3000/userlogin', userData)
+      axios.post(`${process.env.VUE_APP_BACKEND_URL}/userlogin`, userData)
         .then(response => {
           // 로그인 성공
           alert("My Diary에 오신 것을 환영합니다.");
@@ -54,6 +54,7 @@
                 alert("잘못된 정보입니다.\n다시 확인해주세요.");
               }
             } else {
+              alert(`${process.env.VUE_APP_BACKEND_URL}`);
               alert("알 수 없는 오류가 발생했습니다.");
             }
           } else {

@@ -33,7 +33,7 @@
 
       if (token) {
         // 서버에 토큰 유효성 확인 요청
-        axios.get(`http://localhost:3000/verify-reset-token?token=${token}`)
+        axios.get(`${process.env.VUE_APP_BACKEND_URL}/verify-reset-token?token=${token}`)
           .then(response => {
             // 서버로부터 userId 받아 처리
             this.userId = response.data.userId;
@@ -74,7 +74,7 @@
           console.error("userId is undefined, cannot update password.");
           return;
         }
-        axios.post('http://localhost:3000/updatePassword', {
+        axios.post(`${process.env.VUE_APP_BACKEND_URL}/updatePassword`, {
             userId: this.userId,
             newPassword: this.newPassword
         })

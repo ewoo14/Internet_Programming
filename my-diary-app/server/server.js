@@ -72,7 +72,7 @@ function generateResetToken() {
 // 회원가입 인증 이메일 발송 함수
 async function sendVerificationEmail(email, emailVerificationToken, tokenExpirationTime) {
   const formattedExpirationTime = tokenExpirationTime.format('YYYY-MM-DD HH:mm:ss');
-  const verificationLink = `http://localhost:8080/verify-email?token=${emailVerificationToken}`;
+  const verificationLink = `${process.env.VUE_APP_FRONTEND_URL}/verify-email?token=${emailVerificationToken}`;
   const mailOptions = {
     from: 'ewoo2821@gmail.com',
     to: email,
@@ -224,7 +224,10 @@ async function initializeServer() {
 
   // Express 앱 설정
   const app = express();
-  app.use(cors());
+  app.use(cors({
+    origin: `${process.env.VUE_APP_FRONTEND_URL}`,
+    credentials: true
+  }));
   app.use(bodyParser.json());
 
   // 회원가입 라우트
@@ -501,7 +504,7 @@ async function initializeServer() {
       // 토큰 저장
       await db.query('INSERT INTO password_reset_tokens (user_id, token, expiration) VALUES (?, ?, ?)', [userId, resetToken, expirationTime]);
 
-      const resetLink = `http://localhost:8080/reset-password?token=${resetToken}`;
+      const resetLink = `${process.env.VUE_APP_FRONTEND_URL}/reset-password?token=${resetToken}`;
 
       try {
         await sendPasswordResetEmail(email, resetLink, expirationTime);
@@ -597,8 +600,8 @@ async function initializeServer() {
   });
 
   // 서버 시작
-  app.listen(3000, () => {
-      console.log('Server is running on port 3000');
+  app.listen(3000, '0.0.0.0', () => {
+    console.log('Server is running on port 3000');
   });
 }
 

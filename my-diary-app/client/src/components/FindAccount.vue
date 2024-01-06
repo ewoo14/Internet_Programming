@@ -95,7 +95,7 @@
         this.isPhoneForPasswordValid = phonePattern.test(this.phoneForPassword);
       },
       findAccount() {
-        axios.post('http://localhost:3000/findAccount', {
+        axios.post(`${process.env.VUE_APP_BACKEND_URL}/findAccount`, {
             name: this.name,
             phone: this.phone
         })
@@ -119,7 +119,7 @@
         });
       },
       resetPassword() {
-        axios.post('http://localhost:3000/requestPasswordReset', {
+        axios.post(`${process.env.VUE_APP_BACKEND_URL}/requestPasswordReset`, {
           email: this.email,
           name: this.nameForPassword,
           phone: this.phoneForPassword
