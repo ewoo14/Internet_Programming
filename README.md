@@ -29,3 +29,4 @@ and also
 ```
 npm install bcrypt
 ```
+in root directory.
