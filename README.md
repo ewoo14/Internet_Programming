@@ -16,7 +16,8 @@ npm run serve
 ```
 
 ## Warning!
-First of all, you have to unzip node_modules in client folder.
+First of all, you have to unzip node_modules in client folder!!!
+
 And when you running backend server, if error occurs like bcrypt,
 ```
 npm uninstall bcrypt
