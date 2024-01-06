@@ -1,35 +1,27 @@
-# client
+This is MyDiary homepage on that you can write your personal diary.
+You have to install node.js and MySQL first.
+All modules that you should install through npm are described in package.json and package-lock.json
+In server.js you should fill out section with your SQL info.
 
-## Project setup
+### In server folder for running backend server
 ```
-npm install
+node server.js
 ```
 
-### Compiles and hot-reloads for development
+Then diaryDB database will be created with tables in it automatically.
+
+## In client folder for running frontend webpage
 ```
 npm run serve
 ```
 
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
-
-반드시 client 내부의 node_modules를 압축해제 후 사용할 것
-또한 bcrypt 오류가 발생할 경우
+## Warning!
+First of all, you have to unzip node_modules in client folder.
+And when you running backend server, if error occurs like bcrypt,
 ```
 npm uninstall bcrypt
 ```
-를 먼저 진행하여 삭제한 후 다시 재설치
+and also
 ```
 npm install bcrypt
 ```
-
