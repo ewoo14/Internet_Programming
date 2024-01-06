@@ -490,4 +490,4 @@ async function initializeServer() {
 initializeServer();
 
 // 주기적으로 만료된 비인증 계정 삭제(매 10분)
-setInterval(deleteExpiredAccounts, 600000);
+setInterval(() => deleteExpiredAccounts(db), 600000);
