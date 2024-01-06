@@ -64,7 +64,12 @@ function generateEmailVerificationToken() {
   return crypto.randomBytes(20).toString('hex');
 }
 
-// 이메일 발송 함수
+// 비밀번호 재설정 토큰 생성 함수
+function generateResetToken() {
+  return crypto.randomBytes(20).toString('hex');
+}
+
+// 회원가입 인증 이메일 발송 함수
 async function sendVerificationEmail(email, emailVerificationToken, tokenExpirationTime) {
   const formattedExpirationTime = tokenExpirationTime.format('YYYY-MM-DD HH:mm:ss');
   const verificationLink = `http://localhost:8080/verify-email?token=${emailVerificationToken}`;
@@ -72,7 +77,7 @@ async function sendVerificationEmail(email, emailVerificationToken, tokenExpirat
     from: 'ewoo2821@gmail.com',
     to: email,
     subject: '이메일 인증',
-    html: `<p>이메일 인증을 위해 아래 링크를 클릭해주세요.<br>해당 링크는 <strong>${formattedExpirationTime}</strong>까지 유효합니다.<br><br><span style="font-size:'30px'"><a href="${verificationLink}"">인증하기</a></span></p>`
+    html: `<p>이메일 인증을 위해 아래 링크를 클릭해주세요.<br>해당 링크는 <strong>${formattedExpirationTime}</strong>까지 유효합니다.<br><br><span style="font-size:'30px'"><a href="${verificationLink}"  style="font-size:200%; text-decoration:none;"">인증하기</a></span></p>`
   };
 
   try {
@@ -83,6 +88,28 @@ async function sendVerificationEmail(email, emailVerificationToken, tokenExpirat
     console.log("이메일 비밀번호:", process.env.EMAIL_PASS);
     console.error(`Error sending verification email to ${email}: ${error.message}`);
     throw new Error('Error sending verification email');
+  }
+}
+
+// 비밀번호 재설정 이메일 발송 함수
+async function sendPasswordResetEmail(email, resetLink, expirationTime) {
+  const formattedExpirationTime = moment(expirationTime).format('YYYY-MM-DD HH:mm:ss');
+  const mailOptions = {
+    from: 'ewoo2821@gmail.com', // 발신자 이메일 주소
+    to: email, // 수신자 이메일 주소
+    subject: '비밀번호 재설정 요청', // 이메일 제목
+    html: `
+      <p>비밀번호를 재설정하려면 아래 링크를 클릭하세요:<br>해당 링크는 <strong>${formattedExpirationTime}</strong>까지 유효합니다.<br><br></p>
+      <a href="${resetLink}" style="font-size:200%; text-decoration:none;">비밀번호 재설정</a>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`비밀번호 재설정 이메일 발송: ${email}`);
+  } catch (error) {
+    console.error(`비밀번호 재설정 이메일 발송 오류: ${error}`);
+    throw new Error('비밀번호 재설정 이메일 발송 중 오류 발생');
   }
 }
 
@@ -168,6 +195,23 @@ async function initializeServer() {
       logAction('System', "Table 'diaries' created!");
     } else {
       logAction('System', "Table 'diaries' already exists!");
+    }
+
+    // password_reset_tokens 테이블 생성
+    const [PasswordResetTokensTables] = await db.query("SHOW TABLES LIKE 'password_reset_tokens'");
+    if (PasswordResetTokensTables.length === 0) {
+      const createPasswordResetTokensTable = `
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        user_id INT NOT NULL,
+        token VARCHAR(255) NOT NULL,
+        expiration DATETIME NOT NULL,
+        PRIMARY KEY (token),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )`;
+      await db.query(createPasswordResetTokensTable);
+      logAction('System', "Table 'password_reset_tokens' created!");
+    } else {
+      logAction('System', "Table 'password_reset_tokens' already exists!");
     }
 
     // 만료된 계정 삭제
@@ -435,6 +479,78 @@ async function initializeServer() {
     }
   });
 
+  // 비밀번호 재설정용 링크 이메일 전송 라우트
+  app.post('/requestPasswordReset', async (req, res) => {
+    const { email, name, phone } = req.body;
+  
+    try {
+      // 사용자 정보 확인
+      const [user] = await db.query('SELECT * FROM users WHERE email = ? AND name = ? AND phone = ?', [email, name, phone]);
+  
+      if (!user || user.length === 0) {
+        return res.status(404).send({ message: '사용자를 찾을 수 없습니다.' });
+      }
+
+      // 사용자의 ID 추출
+      const userId = user[0].id;
+  
+      // 비밀번호 재설정 토큰 생성
+      const resetToken = generateResetToken();
+      const expirationTime = moment().add(3, 'hours').format('YYYY-MM-DD HH:mm:ss');
+
+      // 토큰 저장
+      await db.query('INSERT INTO password_reset_tokens (user_id, token, expiration) VALUES (?, ?, ?)', [userId, resetToken, expirationTime]);
+
+      const resetLink = `http://localhost:8080/reset-password?token=${resetToken}`;
+
+      try {
+        await sendPasswordResetEmail(email, resetLink, expirationTime);
+        res.send({ message: '비밀번호 재설정 링크를 이메일로 발송했습니다.' });
+      } catch (error) {
+        logAction(email, `이메일 발송 중 오류 발생: ${error.message}`);
+        res.status(500).send({ message: '이메일 발송 중 오류 발생' });
+      }
+
+    } catch (err) {
+      // 오류 처리
+      logAction(email, `비밀번호 재설정 요청 처리 오류: ${err.message}`);
+      res.status(500).send({ message: '서버 오류가 발생했습니다.' });
+    }
+  });
+
+  // 비밀번호 재설정 토큰 조회 라우트
+  app.get('/verify-reset-token', async (req, res) => {
+    const { token } = req.query;
+  
+    try {
+      // 데이터베이스에서 토큰 조회
+      const [rows] = await db.query('SELECT * FROM password_reset_tokens WHERE token = ?', [token]);
+  
+      // 토큰이 존재하지 않는 경우
+      if (rows.length === 0) {
+        logAction('System', `Invalid token attempt: ${token}`);
+        return res.status(404).send({ message: '유효하지 않은 토큰입니다.' });
+      }
+  
+      // 토큰 만료 여부 확인
+      const tokenData = rows[0];
+      const now = new Date();
+      if (new Date(tokenData.expiration) < now) {
+        // 토큰이 만료된 경우
+        logAction('System', `Expired token attempt: ${token}`);
+        return res.status(410).send({ message: '토큰이 만료되었습니다.' });
+      }
+  
+      // 토큰이 유효한 경우, 연관된 userId 반환
+      logAction('System', `Valid token verification: ${token}`);
+      res.send({ userId: tokenData.user_id });
+    } catch (err) {
+      logAction('System', `Error verifying token: ${err.message}`);
+      res.status(500).send({ message: '서버 오류가 발생했습니다.' });
+    }
+  });
+  
+
   // 비밀번호 업데이트 라우트
   app.post('/updatePassword', async (req, res) => {
     const { userId, newPassword } = req.body;
@@ -474,7 +590,7 @@ async function initializeServer() {
     }
   });
 
-  // 현재 시간을 클라이언트로 전송
+  // 현재 시간을 클라이언트로 전송 라우트
   app.get('/current-kst-date', (req, res) => {
     const kstDate = moment().tz('Asia/Seoul').format('YYYY-MM-DD');
     res.send({ date: kstDate });

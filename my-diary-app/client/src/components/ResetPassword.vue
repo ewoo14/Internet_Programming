@@ -29,10 +29,29 @@
       };
     },
     created() {
-      const queryParams = new URLSearchParams(window.location.search);
-      this.userId = queryParams.get('userId');
-      console.log("userId from URL:", this.userId);
-      console.log("Route query parameters:", this.$route.query);
+      const token = this.$route.query.token;
+
+      if (token) {
+        // 서버에 토큰 유효성 확인 요청
+        axios.get(`http://localhost:3000/verify-reset-token?token=${token}`)
+          .then(response => {
+            // 서버로부터 userId 받아 처리
+            this.userId = response.data.userId;
+          })
+          .catch(() => {
+            // 토큰 만료 또는 유효하지 않은 경우
+            alert('링크가 만료되었거나 유효하지 않습니다.');
+            this.$router.push('/');
+          });
+      } else {
+        // 마이페이지에서 직접 접근한 경우
+        // localStorage 등에서 userId 가져오기
+        this.userId = localStorage.getItem('userId');
+        if (!this.userId) {
+          alert('유효하지 않은 접근입니다.');
+          this.$router.push('/');
+        }
+      }
     },
     computed: {
       isFormValid() {

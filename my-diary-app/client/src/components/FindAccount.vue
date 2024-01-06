@@ -119,23 +119,18 @@
         });
       },
       resetPassword() {
-        axios.post('http://localhost:3000/resetPassword', {
-            email: this.email,
-            name: this.nameForPassword,
-            phone: this.phoneForPassword
+        axios.post('http://localhost:3000/requestPasswordReset', {
+          email: this.email,
+          name: this.nameForPassword,
+          phone: this.phoneForPassword
         })
-        .then(response => {
-            this.$router.push({ name: 'ResetPassword', query: { userId: response.data.userId } });
+        .then(() => {
+          alert('비밀번호 재설정 링크가 이메일로 발송되었습니다.');
         })
         .catch(error => {
-            if (error.response && error.response.status === 404) {
-            // 일치하는 정보가 없는 경우
-            alert('잘못된 정보입니다.');
-            } else {
-            // 기타 서버 오류
-            console.error('비밀번호 재설정 오류:', error);
-            alert('오류가 발생했습니다.');
-            }
+          // 오류 처리
+          console.error('비밀번호 재설정 요청 오류:', error);
+          alert('오류가 발생했습니다.');
         });
       }
     }
