@@ -115,7 +115,7 @@ export default {
         })
         .catch(error => {
           // 오류 메시지 초기화
-          this.errorMessage = '';
+          alert(error.response.data.message || '회원가입에 실패했습니다.')
 
           if (error.response) {
             // 서버에서 반환된 오류 메시지 처리

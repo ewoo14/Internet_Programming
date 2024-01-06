@@ -28,6 +28,12 @@
         userId: this.$route.query.userId
       };
     },
+    created() {
+      const queryParams = new URLSearchParams(window.location.search);
+      this.userId = queryParams.get('userId');
+      console.log("userId from URL:", this.userId);
+      console.log("Route query parameters:", this.$route.query);
+    },
     computed: {
       isFormValid() {
         return this.isNewPasswordValid && this.isConfirmPasswordValid;
@@ -44,6 +50,10 @@
         if (!this.isNewPasswordValid || !this.isConfirmPasswordValid) {
             alert("비밀번호 유효성 검사를 통과하지 못했습니다.");
             return;
+        }
+        if (!this.userId) {
+          console.error("userId is undefined, cannot update password.");
+          return;
         }
         axios.post('http://localhost:3000/updatePassword', {
             userId: this.userId,
