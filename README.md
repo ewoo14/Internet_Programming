@@ -6,14 +6,14 @@ All modules that you should install through npm are described in package.json an
 
 In server.js you should fill out section with your SQL info.
 
-## In server folder for running backend server
+### In server folder for running backend server
 ```
 node server.js
 ```
 
 Then diaryDB database will be created with tables in it automatically.
 
-## In client folder for running frontend webpage
+### In client folder for running frontend webpage
 ```
 npm run serve
 ```
