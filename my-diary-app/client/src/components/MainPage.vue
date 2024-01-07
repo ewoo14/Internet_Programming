@@ -162,4 +162,23 @@ export default {
   .main-container input {
     margin-bottom: 5px;
   }
+
+   /* 모바일 화면용 스타일 */
+   @media (max-width: 600px) {
+    .main-container {
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .diary-content, .empty-diary {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .diary-content textarea, .empty-diary textarea {
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
 </style>
