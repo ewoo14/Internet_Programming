@@ -69,7 +69,16 @@ export default {
     }
   },
   created() {
-      this.fetchUserName(); // 컴포넌트 생성 시 사용자 이름 조회
+    this.fetchUserName(); // 컴포넌트 생성 시 사용자 이름 조회
+    
+    // 로컬 스토리지에서 사용자 ID 확인
+    const userId = localStorage.getItem('userId');
+
+    // 사용자 ID가 없으면 로그인 페이지로 리디렉션
+    if (!userId) {
+      alert("비정상적인 접근입니다.");
+      this.$router.push('/userlogin');
+    }
   }
 };
 </script>

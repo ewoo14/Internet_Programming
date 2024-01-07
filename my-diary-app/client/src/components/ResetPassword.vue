@@ -46,10 +46,10 @@
       } else {
         // 마이페이지에서 직접 접근한 경우
         // localStorage 등에서 userId 가져오기
-        this.userId = localStorage.getItem('userId');
-        if (!this.userId) {
-          alert('유효하지 않은 접근입니다.');
-          this.$router.push('/');
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
+          alert("비정상적인 접근입니다.");
+          this.$router.push('/userlogin');
         }
       }
     },
