@@ -10,7 +10,7 @@ const nodemailer = require('nodemailer');
 // 타임스탬프 함수
 const moment = require('moment-timezone');
 function getCurrentTimestamp() {
-    return moment().tz('Asia/Seoul').format('YYYY-MM-DD HH:mm:ss');
+  return moment().tz('Asia/Seoul').format('YYYY-MM-DD HH:mm:ss');
 }
 
 // 로그를 기록하는 함수
