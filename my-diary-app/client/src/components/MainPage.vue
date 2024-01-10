@@ -135,6 +135,7 @@ export default {
         this.diaryContent = this.newDiaryContent;
         this.newDiaryContent = '';
         alert('일기가 저장되었습니다.');
+        this.fetchRecentDiaries();
       })
       .catch(error => {
         console.error('Error saving diary:', error);
