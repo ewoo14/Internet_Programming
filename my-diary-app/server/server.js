@@ -599,6 +599,28 @@ async function initializeServer() {
     res.send({ date: kstDate });
   });
 
+  // 최근 작성한 일기 날짜 조회 라우트
+  app.get('/recent-diaries', async (req, res) => {
+    const userId = req.query.userId;
+
+    try {
+      // 사용자의 최근 일기 날짜를 diary_id 기준 내림차순으로 조회
+      const [diaries] = await db.query(`
+        SELECT date FROM diaries 
+        WHERE user_id = ? 
+        ORDER BY diary_id DESC 
+        LIMIT 30
+      `, [userId]);
+
+      // 날짜만 추출하여 배열로 반환
+      const dates = diaries.map(diary => diary.date);
+      res.send({ dates });
+    } catch (err) {
+      console.error(`Error fetching recent diaries for user ${userId}: ${err.message}`);
+      res.status(500).send({ message: 'Server error' });
+    }
+  });
+
   // 서버 시작
   app.listen(3000, '0.0.0.0', () => {
     console.log('Server is running on port 3000');

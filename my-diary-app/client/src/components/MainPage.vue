@@ -9,19 +9,32 @@
 
     <!-- 메인 컨테이너 -->
     <div class="main-container">
-      <!-- 날짜 선택 -->
-      일자 : <input type="date" v-model="selectedDate" @change="fetchDiary">
-      <hr>
-      <!-- 일기장 표시 -->
-      <div v-if="diaryContent" class="diary-content">
-        <div v-html="formattedDiaryContent"></div>
-        <br><br>
-        <button @click="editDiary">수정</button>
+      <div class="diary-section">
+        <!-- 날짜 선택 -->
+        일자 : <input type="date" v-model="selectedDate" @change="fetchDiary">
+        <hr>
+        <!-- 일기장 표시 -->
+        <div v-if="diaryContent" class="diary-content">
+          <div v-html="formattedDiaryContent"></div>
+          <br><br>
+          <button @click="editDiary">수정</button>
+        </div>
+        <div v-else class="empty-diary">
+          <textarea v-model="newDiaryContent" cols="50" rows="20"></textarea>
+          <br>
+          <button @click="saveDiary">저장</button>
+        </div>
       </div>
-      <div v-else class="empty-diary">
-        <textarea v-model="newDiaryContent" cols="50" rows="20"></textarea>
-        <br>
-        <button @click="saveDiary">저장</button>
+
+      <!-- 최근 작성한 일기 섹션 -->
+      <div class="recent-diaries">
+        <h3>RECENT</h3>
+        <hr>
+        <div class="diary-list">
+          <div v-for="date in recentDiaryDates" :key="date" class="diary-date" :class="{ 'diary-date-selected': isDateSelected(date) }" @click="selectDiaryDate(date)">
+            {{ formatDate(date) }}
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -29,6 +42,7 @@
   
 <script>
 import axios from 'axios';
+import moment from 'moment';
 
 export default {
   data() {
@@ -37,6 +51,7 @@ export default {
       selectedDate: this.getCurrentDateInKST(),
       diaryContent: null,
       newDiaryContent: '',
+      recentDiaryDates: [], // 최근 작성한 일기 날짜 배열
     };
   },
   computed: {
@@ -60,8 +75,10 @@ export default {
     },
 
     handleDateSelect(date) {
-      console.log('Selected date:', date);
-      this.$router.push({ name: 'WriteDiary', query: { date: date.toISOString() } });
+      // 날짜를 선택하면 해당 날짜로 설정
+      this.selectedDate = date;
+      // 일기장 날짜를 선택한 날짜로 갱신
+      this.fetchDiary();
     },
 
     editDiary() {
@@ -118,14 +135,46 @@ export default {
         this.diaryContent = this.newDiaryContent;
         this.newDiaryContent = '';
         alert('일기가 저장되었습니다.');
+        this.fetchRecentDiaries();
       })
       .catch(error => {
         console.error('Error saving diary:', error);
       });
-    }
+    },
+
+    // 최근 작성된 일기 날짜 가져오기
+    fetchRecentDiaries() {
+      axios.get(`${process.env.VUE_APP_BACKEND_URL}/recent-diaries`, {
+        params: { userId: localStorage.getItem('userId') }
+      })
+      .then(response => {
+        this.recentDiaryDates = response.data.dates; // 서버에서 반환된 날짜 배열
+      })
+      .catch(error => {
+        console.error('Error fetching recent diaries:', error);
+      });
+    },
+
+    formatDate(date) {
+      return moment(date).format('YYYY-MM-DD');
+    },
+
+    selectDiaryDate(date) {
+      // 날짜 형식 변환
+      const formattedDate = moment(date).format('YYYY-MM-DD');
+      this.selectedDate = formattedDate;
+      this.fetchDiary();
+    },
+
+    isDateSelected(date) {
+      const formattedDate = moment(date).format('YYYY-MM-DD');
+      return formattedDate === this.selectedDate;
+    },
   },
+
   created() {
     this.fetchUserName(); // 컴포넌트 생성 시 사용자 이름 조회
+    this.fetchRecentDiaries(); // 컴포넌트 생성 시 최근 일기 날짜 조회
     axios.get(`${process.env.VUE_APP_BACKEND_URL}/current-kst-date`)
     .then(response => {
       this.selectedDate = response.data.date;
@@ -151,43 +200,102 @@ export default {
 <style>
   .main-page {
     padding: 20px;
-    max-width: 800px;
+    max-width: 600px; /* 메인 페이지 최대 너비 조정 */
     margin: auto;
   }
 
-  .user-info {
-    text-align: right;
-    font-size: 1.2em;
-    margin-bottom: 20px;
-  }
-  
   .main-container {
-    max-width: 500px;
-    margin: auto;
+    display: flex; /* Flexbox 레이아웃 사용 */
+    margin-top: 50px;
     padding: 20px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   }
 
-  .main-container input {
-    margin-bottom: 5px;
+  .diary-section {
+    flex: 80%; /* 메인 컨테이너 좌측 85% 너비 할당 */
   }
 
-   /* 모바일 화면용 스타일 */
-   @media (max-width: 600px) {
+  .empty-diary {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+  }
+
+  .recent-diaries {
+    flex: 20%; /* 메인 컨테이너 우측 15% 너비 할당 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-left: 1px solid #ddd;
+    height: 380px;
+    overflow-y: auto; /* 내용이 넘칠 경우 스크롤 */
+  }
+
+  .recent-diaries h3 {
+    margin-top: 0px;
+    margin-bottom: 1px;
+  }
+
+  .recent-diaries hr {
+    width: 100%;
+    border-top: 1px solid gray;
+  }
+
+  .diary-date {
+    cursor: pointer;
+    text-align: center;
+    padding: 5px;
+    border: 1px solid #eee;
+    margin-bottom: 5px;
+    word-break: break-all;
+    width: auto;
+    background-color: rgb(198, 229, 240);
+    font-size: 13px;
+  }
+
+  .diary-date-selected {
+    background-color: rgb(101, 185, 219);
+  }
+
+  .diary-date:hover {
+    background-color: rgb(101, 185, 219);
+  }
+
+  /* 모바일 화면용 스타일 */
+  @media (max-width: 600px) {
     .main-container {
+      flex-direction: column;
+    }
+
+    .diary-section, .recent-diaries {
       width: 100%;
+      flex: none;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .empty-diary textarea {
+      width: 100%;
+      box-sizing: border-box;
       padding: 10px;
-      box-sizing: border-box;
     }
 
-    .diary-content, .empty-diary {
-      width: 100%;
-      box-sizing: border-box;
+    .recent-diaries {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 1px solid;
     }
 
-    .diary-content textarea, .empty-diary textarea {
+    .recent-diaries h3 {
+      margin-top: 10px;
+      margin-bottom: 0px;
+    }
+
+    .recent-diaries hr {
       width: 100%;
-      box-sizing: border-box;
+      border-top: 1px solid gray;
     }
   }
 </style>

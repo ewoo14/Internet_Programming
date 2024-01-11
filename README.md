@@ -17,3 +17,18 @@ Then diaryDB database will be created with tables in it automatically.
 ```
 npm run serve
 ```
+
+### In .env file at client folder you should type your back-end server IP in.
+```
+VUE_APP_BACKEND_URL=http://{your computer IP}:3000
+```
+
+### In .env file at server folder you should type front-end IP, email(Account, PW), mySQL(Account, PW) in.
+```
+VUE_APP_FRONTEND_URL=http://{your computer IP}:8080
+EMAIL_USER={your email account}
+EMAIL_PASS={your email password}
+DB_HOST=localhost
+DB_USER=root
+DB_PASS={your mySQL password}
+```
