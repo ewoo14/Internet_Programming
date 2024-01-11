@@ -1,5 +1,6 @@
 <template>
   <div class="my-container">
+    <div class="timer">자동 로그아웃: {{ remainingTime }}초</div>
     <!-- 페이지 제목 -->
     <h1 class="my-title">My Page</h1>
 
@@ -27,6 +28,8 @@ export default {
   data() {
     return {
       userName: '익명',
+      remainingTime: 600, // 초단위 (10분)
+      timer: null
     };
   },
   methods: {
@@ -66,7 +69,44 @@ export default {
       .catch(error => {
           console.error('Error fetching user name:', error);
       });
-    }
+    },
+    resetTimer() {
+      this.remainingTime = 600; // 타이머를 10분으로 재설정
+    },
+
+    updateTimer() {
+      if (this.remainingTime > 0) {
+        this.remainingTime--;
+      } else {
+        this.logout(); // 타이머가 0이 되면 로그아웃 실행
+      }
+    },
+    
+    logout() {
+      clearInterval(this.timerId); // 타이머 초기화
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        axios.post(`${process.env.VUE_APP_BACKEND_URL}/userlogout`, { userId })
+          .then(() => {
+            localStorage.removeItem('userId');
+            this.$router.push('/userlogin'); // 로그인 페이지로 리디렉션
+          })
+          .catch(error => {
+            console.error('로그아웃 실패:', error);
+          });
+      }
+    },
+
+    handleBeforeUnload() {
+      this.logout();
+    },
+
+    handleDateSelect(date) {
+      // 날짜를 선택하면 해당 날짜로 설정
+      this.selectedDate = date;
+      // 일기장 날짜를 선택한 날짜로 갱신
+      this.fetchDiary();
+    },
   },
   created() {
     this.fetchUserName(); // 컴포넌트 생성 시 사용자 이름 조회
@@ -79,6 +119,18 @@ export default {
       alert("비정상적인 접근입니다.");
       this.$router.push('/userlogin');
     }
+  },
+  mounted() {
+    this.timer = setInterval(this.updateTimer, 1000); // 1초마다 타이머 감소
+
+    // 사용자 활동 감지
+    window.addEventListener('mousemove', this.resetTimer);
+    window.addEventListener('keydown', this.resetTimer);
+  }, 
+  beforeUnmount() {
+    clearInterval(this.timer); // 컴포넌트가 제거되면 타이머 정리
+    window.removeEventListener('mousemove', this.resetTimer);
+    window.removeEventListener('keydown', this.resetTimer);
   }
 };
 </script>

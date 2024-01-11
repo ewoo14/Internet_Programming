@@ -1,18 +1,19 @@
 <template>
-    <div class="reset-password-container">
-      <h1 class="reset-password-header">비밀번호 재설정</h1>
-      <div class="inputs-container">
-        <div>
-          <input type="password" placeholder="새 비밀번호" class="input-field" v-model="newPassword" @input="validateNewPassword" :class="{ 'is-invalid': !isNewPasswordValid, 'is-valid': isNewPasswordValid }" />
-          <p v-if="!isNewPasswordValid" class="warning-text">비밀번호를 입력해주세요.</p>
-        </div>
-        <div>
-          <input type="password" placeholder="새 비밀번호 확인" class="input-field" v-model="confirmPassword" @input="validateConfirmPassword" :class="{ 'is-invalid': !isConfirmPasswordValid, 'is-valid': isConfirmPasswordValid }" />
-          <p v-if="!isConfirmPasswordValid" class="warning-text">같은 비밀번호를 입력해주세요.</p>
-        </div>
-        <button class="reset-password-btn" @click="updatePassword" :disabled="!isFormValid">재설정</button>
+  <div class="reset-password-container">
+    <div class="timer">자동 로그아웃: {{ remainingTime }}초</div>
+    <h1 class="reset-password-header">비밀번호 재설정</h1>
+    <div class="inputs-container">
+      <div>
+        <input type="password" placeholder="새 비밀번호" class="input-field" v-model="newPassword" @input="validateNewPassword" :class="{ 'is-invalid': !isNewPasswordValid, 'is-valid': isNewPasswordValid }" />
+        <p v-if="!isNewPasswordValid" class="warning-text">비밀번호를 입력해주세요.</p>
       </div>
+      <div>
+        <input type="password" placeholder="새 비밀번호 확인" class="input-field" v-model="confirmPassword" @input="validateConfirmPassword" :class="{ 'is-invalid': !isConfirmPasswordValid, 'is-valid': isConfirmPasswordValid }" />
+        <p v-if="!isConfirmPasswordValid" class="warning-text">같은 비밀번호를 입력해주세요.</p>
+      </div>
+      <button class="reset-password-btn" @click="updatePassword" :disabled="!isFormValid">재설정</button>
     </div>
+  </div>
 </template>
   
 <script>
@@ -25,7 +26,9 @@
         confirmPassword: '',
         isNewPasswordValid: false,
         isConfirmPasswordValid: false,
-        userId: this.$route.query.userId
+        userId: this.$route.query.userId,
+        remainingTime: 600, // 초단위 (10분)
+        timer: null
       };
     },
     created() {
@@ -58,6 +61,7 @@
         return this.isNewPasswordValid && this.isConfirmPasswordValid;
       }
     },
+
     methods: {
       validateNewPassword() {
         this.isNewPasswordValid = this.newPassword.length > 0;
@@ -86,7 +90,56 @@
             console.error('비밀번호 변경 오류:', error);
             alert('비밀번호 변경 중 오류가 발생했습니다.');
         });
-      }
+      },
+      resetTimer() {
+        this.remainingTime = 600; // 타이머를 10분으로 재설정
+      },
+
+      updateTimer() {
+        if (this.remainingTime > 0) {
+          this.remainingTime--;
+        } else {
+          this.logout(); // 타이머가 0이 되면 로그아웃 실행
+        }
+      },
+      
+      logout() {
+        clearInterval(this.timerId); // 타이머 초기화
+        const userId = localStorage.getItem('userId');
+        if (userId) {
+          axios.post(`${process.env.VUE_APP_BACKEND_URL}/userlogout`, { userId })
+            .then(() => {
+              localStorage.removeItem('userId');
+              this.$router.push('/userlogin'); // 로그인 페이지로 리디렉션
+            })
+            .catch(error => {
+              console.error('로그아웃 실패:', error);
+            });
+        }
+      },
+
+      handleBeforeUnload() {
+        this.logout();
+      },
+
+      handleDateSelect(date) {
+        // 날짜를 선택하면 해당 날짜로 설정
+        this.selectedDate = date;
+        // 일기장 날짜를 선택한 날짜로 갱신
+        this.fetchDiary();
+      },
+    },
+    mounted() {
+      this.timer = setInterval(this.updateTimer, 1000); // 1초마다 타이머 감소
+
+      // 사용자 활동 감지
+      window.addEventListener('mousemove', this.resetTimer);
+      window.addEventListener('keydown', this.resetTimer);
+    }, 
+    beforeUnmount() {
+      clearInterval(this.timer); // 컴포넌트가 제거되면 타이머 정리
+      window.removeEventListener('mousemove', this.resetTimer);
+      window.removeEventListener('keydown', this.resetTimer);
     }
   };
 </script>

@@ -1,10 +1,15 @@
 <template>
   <div class="main-page">
-    <!-- 사용자 정보, 마이페이지 및 로그아웃 링크 -->
-    <div class="user-info">
-      {{ userName }}님 | 
-      <router-link to="/mypage">마이페이지</router-link> |
-      <a href="#" @click="logout">로그아웃</a>
+    <!-- 메인 헤더 -->
+    <div class="main-header">
+      <!-- 남은 시간 타이머 -->
+      <div class="timer">자동 로그아웃: {{ remainingTime }}초</div>
+      <!-- 사용자 정보, 마이페이지 및 로그아웃 링크 -->
+      <div class="user-info">
+        {{ userName }}님 | 
+        <router-link to="/mypage">마이페이지</router-link> |
+        <a href="#" @click="logout">로그아웃</a>
+      </div>
     </div>
 
     <!-- 메인 컨테이너 -->
@@ -53,6 +58,8 @@ export default {
       diaryContent: null,
       newDiaryContent: '',
       recentDiaryDates: [], // 최근 작성한 일기 날짜 배열
+      remainingTime: 600, // 초단위 (10분)
+      timer: null
     };
   },
   computed: {
@@ -68,11 +75,35 @@ export default {
       return kstTime.toISOString().split('T')[0];
     },
 
+    resetTimer() {
+      this.remainingTime = 600; // 타이머를 10분으로 재설정
+    },
+
+    updateTimer() {
+      if (this.remainingTime > 0) {
+        this.remainingTime--;
+      } else {
+        this.logout(); // 타이머가 0이 되면 로그아웃 실행
+      }
+    },
+    
     logout() {
-      // 로컬 스토리지에서 사용자 ID 삭제
-      localStorage.removeItem('userId');
-      // 로그인 페이지로 리디렉션
-      this.$router.push('/userlogin');
+      clearInterval(this.timerId); // 타이머 초기화
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        axios.post(`${process.env.VUE_APP_BACKEND_URL}/userlogout`, { userId })
+          .then(() => {
+            localStorage.removeItem('userId');
+            this.$router.push('/userlogin'); // 로그인 페이지로 리디렉션
+          })
+          .catch(error => {
+            console.error('로그아웃 실패:', error);
+          });
+      }
+    },
+
+    handleBeforeUnload() {
+      this.logout();
     },
 
     handleDateSelect(date) {
@@ -211,6 +242,18 @@ export default {
       alert("비정상적인 접근입니다.");
       this.$router.push('/userlogin');
     }
+  },
+  mounted() {
+    this.timer = setInterval(this.updateTimer, 1000); // 1초마다 타이머 감소
+
+    // 사용자 활동 감지
+    window.addEventListener('mousemove', this.resetTimer);
+    window.addEventListener('keydown', this.resetTimer);
+  }, 
+  beforeUnmount() {
+    clearInterval(this.timer); // 컴포넌트가 제거되면 타이머 정리
+    window.removeEventListener('mousemove', this.resetTimer);
+    window.removeEventListener('keydown', this.resetTimer);
   }
 };
 </script>
@@ -222,9 +265,22 @@ export default {
     margin: auto;
   }
 
+  .main-header {
+    display: flex;
+    justify-content: space-between; /* 좌우 균등 정렬 */
+    margin-bottom: 10px;
+  }
+
+  .timer {
+    text-align: left; /* 좌측 정렬 */
+  }
+
+  .user-info {
+    text-align: right; /* 우측 정렬 */
+  }
   .main-container {
-    display: flex; /* Flexbox 레이아웃 사용 */
-    margin-top: 50px;
+    display: flex;
+    margin-top: 20px;
     padding: 20px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   }
@@ -264,6 +320,7 @@ export default {
     text-align: center;
     padding: 5px;
     border: 1px solid #eee;
+    border-radius: 20px;
     margin-bottom: 5px;
     word-break: break-all;
     width: auto;
@@ -318,6 +375,19 @@ export default {
     .recent-diaries hr {
       width: 100%;
       border-top: 1px solid gray;
+    }
+
+    .diary-date {
+      cursor: pointer;
+      text-align: center;
+      padding: 5px;
+      border: 1px solid #eee;
+      border-radius: 20px;
+      margin-bottom: 5px;
+      word-break: break-all;
+      width: auto;
+      background-color: rgb(198, 229, 240);
+      font-size: 13px;
     }
 
     button {

@@ -14,8 +14,18 @@ function getCurrentTimestamp() {
 }
 
 // 로그를 기록하는 함수
-function logAction(email, message) {
-    console.log(`[${getCurrentTimestamp()}] [${email}] ${message}`);
+async function logAction(userId, message) {
+  const currentTimestamp = getCurrentTimestamp();
+  console.log(`[${currentTimestamp}] [User ID: ${userId}] ${message}`);
+
+  // 사용자의 마지막 활동 시간 업데이트
+  if (userId && /^\d{5}$/.test(userId)) {
+    try {
+      await db.query('UPDATE users SET last_activity = ? WHERE id = ?', [currentTimestamp, userId]);
+    } catch (err) {
+      console.error(`Error updating last activity for user ${userId}: ${err.message}`);
+    }
+  }
 }
 
 // 5자리 랜덤 숫자 생성 함수
@@ -84,9 +94,7 @@ async function sendVerificationEmail(email, emailVerificationToken, tokenExpirat
     const info = await transporter.sendMail(mailOptions);
     logAction(email, `Verification email sent: ${info.response}`);
   } catch (error) {
-    console.log("이메일 사용자:", process.env.EMAIL_USER);
-    console.log("이메일 비밀번호:", process.env.EMAIL_PASS);
-    console.error(`Error sending verification email to ${email}: ${error.message}`);
+    logAction(email, `Error sending verification email: ${error.message}`);
     throw new Error('Error sending verification email');
   }
 }
@@ -106,10 +114,10 @@ async function sendPasswordResetEmail(email, resetLink, expirationTime) {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`비밀번호 재설정 이메일 발송: ${email}`);
+    logAction(email, `Password reset email sent`);
   } catch (error) {
-    console.error(`비밀번호 재설정 이메일 발송 오류: ${error}`);
-    throw new Error('비밀번호 재설정 이메일 발송 중 오류 발생');
+    logAction(email, `Error sending password reset email: ${error}`);
+    throw new Error('Error sending password reset email');
   }
 }
 
@@ -172,7 +180,9 @@ async function initializeServer() {
             phone VARCHAR(20) NOT NULL,
             email_verified BOOLEAN NOT NULL DEFAULT FALSE,
             email_verification_token VARCHAR(255),
-            token_expiration DATETIME
+            token_expiration DATETIME,
+            is_LogIn BOOLEAN NOT NULL DEFAULT FALSE,
+            last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`;
       await db.query(createUsersTable);
       logAction('System', "Table 'users' created!");
@@ -346,27 +356,52 @@ async function initializeServer() {
     const { email, password } = req.body;
 
     try {
-      // 사용자 이메일로 데이터베이스 조회
-      const [results] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-
-      // 사용자가 존재하지 않거나 비밀번호가 일치하지 않는 경우
-      if (!results.length || !await bcrypt.compare(password, results[0].password)) {
-        logAction(email, 'Login error');
+      // 사용자 정보 조회
+      const [user] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+  
+      if (user.length === 0) {
         return res.status(401).send({ message: '잘못된 이메일 또는 비밀번호입니다.' });
       }
-
-      // 이메일 인증 여부 확인
-      if (!results[0].email_verified) {
-        logAction(email, 'Email not verified');
+  
+      const currentUser = user[0];
+  
+      // 이미 로그인 중인지 확인
+      if (currentUser.is_LogIn) {
+        return res.status(401).send({ message: '이미 다른 디바이스에서 로그인 중입니다.' });
+      }
+  
+      // 비밀번호 확인
+      if (!await bcrypt.compare(password, currentUser.password)) {
+        return res.status(401).send({ message: '잘못된 이메일 또는 비밀번호입니다.' });
+      }
+  
+      // 이메일 인증 확인
+      if (!currentUser.email_verified) {
         return res.status(401).send({ message: '이메일 인증이 완료되지 않았습니다.' });
       }
 
       // 로그인 성공
       logAction(email, 'Login successful');
-      res.status(200).send({ message: 'Login successful', userId: results[0].id });
+      await db.query('UPDATE users SET is_LogIn = 1 WHERE id = ?', [currentUser.id]);
+      await db.query('UPDATE users SET last_activity = NOW() WHERE id = ?', [currentUser.id]);
+      res.status(200).send({ message: 'Login successful', userId: currentUser.id });
     } catch (err) {
       console.error(err);
       res.status(500).send({ message: 'Server error' });
+    }
+  });
+
+  // 로그아웃 라우트
+  app.post('/userlogout', async (req, res) => {
+    const { userId } = req.body;
+
+    try {
+        // is_LogIn을 0으로 설정
+        await db.query('UPDATE users SET is_LogIn = 0 WHERE id = ?', [userId]);
+        res.status(200).send({ message: 'Logout successful' });
+    } catch (err) {
+        // 오류 처리
+        res.status(500).send({ message: 'Server error' });
     }
   });
 
@@ -644,7 +679,7 @@ async function initializeServer() {
 
   // 서버 시작
   app.listen(3000, '0.0.0.0', () => {
-    console.log('Server is running on port 3000');
+    logAction('System', 'Server is running on port 3000');
   });
 }
 
@@ -652,4 +687,18 @@ async function initializeServer() {
 initializeServer();
 
 // 주기적으로 만료된 비인증 계정 삭제(매 10분)
-setInterval(() => deleteExpiredAccounts(db), 600000);
+setInterval(() => {
+  deleteExpiredAccounts(db)
+  .then(() => logAction('System', 'Expired accounts check completed'))
+  .catch(err => logAction('System', `Error during expired accounts check: ${err.message}`));
+}, 10 * 60 * 1000);
+
+// 정기적으로 사용자 로그아웃 체크(매 5분)
+setInterval(async () => {
+  const TIMEOUT = 30 * 60 * 1000; // 30분 타이머
+  await db.query(`
+    UPDATE users 
+    SET is_LogIn = 0
+    WHERE is_LogIn = 1 AND last_activity < NOW() - INTERVAL ? SECOND
+  `, [TIMEOUT / 1000]);
+}, 5 * 60 * 1000);

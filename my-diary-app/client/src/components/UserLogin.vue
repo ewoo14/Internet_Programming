@@ -50,7 +50,11 @@
             if (error.response.status === 401) {
               if (error.response.data.message === '이메일 인증이 완료되지 않았습니다.') {
                 alert("이메일 인증이 완료되지 않았습니다.");
-              } else {
+              }
+              else if (error.response.data.message === '이미 다른 디바이스에서 로그인 중입니다.') {
+                alert("이미 다른 디바이스에서 로그인 중입니다.");
+              }
+              else {
                 alert("잘못된 정보입니다.\n다시 확인해주세요.");
               }
             } else {
