@@ -18,6 +18,7 @@
           <div v-html="formattedDiaryContent"></div>
           <br><br>
           <button @click="editDiary">수정</button>
+          <button @click="deleteDiary">삭제</button>
         </div>
         <div v-else class="empty-diary">
           <textarea v-model="newDiaryContent" cols="50" rows="20"></textarea>
@@ -142,6 +143,23 @@ export default {
       });
     },
 
+    deleteDiary() {
+      if (confirm('일기를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+        axios.delete(`${process.env.VUE_APP_BACKEND_URL}/diary/${this.selectedDate}`, {
+          params: { userId: localStorage.getItem('userId') }
+        })
+        .then(() => {
+          alert('일기가 삭제되었습니다.');
+          this.diaryContent = null; // 일기 내용 초기화
+          this.fetchRecentDiaries(); // 최근 일기 날짜 목록 갱신
+        })
+        .catch(error => {
+          console.error('Error deleting diary:', error);
+          alert('일기 삭제에 실패했습니다.');
+        });
+      }
+    },
+
     // 최근 작성된 일기 날짜 가져오기
     fetchRecentDiaries() {
       axios.get(`${process.env.VUE_APP_BACKEND_URL}/recent-diaries`, {
@@ -261,6 +279,10 @@ export default {
     background-color: rgb(101, 185, 219);
   }
 
+  button {
+    margin: 5px 5px;
+  }
+
   /* 모바일 화면용 스타일 */
   @media (max-width: 600px) {
     .main-container {
@@ -296,6 +318,10 @@ export default {
     .recent-diaries hr {
       width: 100%;
       border-top: 1px solid gray;
+    }
+
+    button {
+      margin: 5px 5px;
     }
   }
 </style>

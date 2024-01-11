@@ -621,6 +621,27 @@ async function initializeServer() {
     }
   });
 
+  // 일기 삭제 라우트
+  app.delete('/diary/:date', async (req, res) => {
+    const userId = req.query.userId;
+    const date = req.params.date;
+
+    try {
+      const [result] = await db.query('DELETE FROM diaries WHERE user_id = ? AND date = ?', [userId, date]);
+
+      if (result.affectedRows > 0) {
+        logAction(userId, `Diary deleted for date: ${date}`);
+        res.status(200).send({ message: 'Diary successfully deleted' });
+      } else {
+        logAction(userId, `No diary found to delete for date: ${date}`);
+        res.status(404).send({ message: 'No diary found for this date' });
+      }
+    } catch (err) {
+      logAction(userId, `Error deleting diary: ${err.message}`);
+      res.status(500).send({ message: 'Server error' });
+    }
+  });
+
   // 서버 시작
   app.listen(3000, '0.0.0.0', () => {
     console.log('Server is running on port 3000');
