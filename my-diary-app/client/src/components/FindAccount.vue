@@ -6,12 +6,12 @@
         <div class="inputs-container">
           <div class="fields-container">
             <div>
-                <input type="text" placeholder="이름" class="input-field" v-model="name" @input="validateName" :class="{ 'is-invalid': !isNameValid, 'is-valid': isNameValid }" />
-                <p v-if="!isNameValid" class="warning-text">이름을 입력해주세요.</p>
+              <input type="text" placeholder="이름" class="input-field" v-model="name" @input="validateName" :class="{ 'is-invalid': !isNameValid, 'is-valid': isNameValid }" />
+              <p v-if="!isNameValid" class="warning-text">이름을 입력해주세요.</p>
             </div>
             <div>
-                <input type="text" placeholder="전화번호" class="input-field" v-model="phone" @input="validatePhone" :class="{ 'is-invalid': !isPhoneValid, 'is-valid': isPhoneValid }" />
-                <p v-if="!isPhoneValid" class="warning-text">01x-xxxx-xxxx 형식으로 입력해주세요.</p>
+              <input type="text" placeholder="전화번호" class="input-field" v-model="phone" @input="formatPhoneNumber('phone'); validatePhone()" :class="{ 'is-invalid': !isPhoneValid, 'is-valid': isPhoneValid }" required>
+              <p v-if="!isPhoneValid" class="warning-text">01x-xxxx-xxxx 형식으로 입력해주세요.</p>
             </div>
           </div>
           <button class="find-account-btn" @click="findAccount" :disabled="!isIdFormValid">찾기</button>
@@ -24,16 +24,18 @@
         <div class="inputs-container">
           <div class="fields-container">
             <div>
-                <input type="email" placeholder="이메일" class="input-field" v-model="email" @input="validateEmail" :class="{ 'is-invalid': !isEmailValid, 'is-valid': isEmailValid }" />
-                <p v-if="!isEmailValid" class="warning-text">유효한 이메일 주소를 입력해주세요.</p>
+              <input type="email" placeholder="이메일" class="input-field" v-model="email" @input="validateEmail" :class="{ 'is-invalid': !isEmailValid, 'is-valid': isEmailValid }" />
+              <p v-if="!isEmailValid" class="warning-text">유효한 이메일 주소를 입력해주세요.</p>
             </div>
             <div>
-                <input type="text" placeholder="이름" class="input-field" v-model="nameForPassword" @input="validateNameForPassword" :class="{ 'is-invalid': !isNameForPasswordValid, 'is-valid': isNameForPasswordValid }" />
-                <p v-if="!isNameForPasswordValid" class="warning-text">이름을 입력해주세요.</p>
+              <input type="text" placeholder="이름" class="input-field" v-model="nameForPassword" @input="validateNameForPassword" :class="{ 'is-invalid': !isNameForPasswordValid, 'is-valid': isNameForPasswordValid }" />
+              <p v-if="!isNameForPasswordValid" class="warning-text">이름을 입력해주세요.</p>
             </div>
             <div>
-                <input type="text" placeholder="전화번호" class="input-field" v-model="phoneForPassword" @input="validatePhoneForPassword" :class="{ 'is-invalid': !isPhoneForPasswordValid, 'is-valid': isPhoneForPasswordValid }" />
+              <div>
+                <input type="text" placeholder="전화번호" class="input-field" v-model="phoneForPassword" @input="formatPhoneNumber('phoneForPassword'); validatePhoneForPassword()" :class="{ 'is-invalid': !isPhoneForPasswordValid, 'is-valid': isPhoneForPasswordValid }" required>
                 <p v-if="!isPhoneForPasswordValid" class="warning-text">01x-xxxx-xxxx 형식으로 입력해주세요.</p>
+              </div>
             </div>
           </div>
           <button class="reset-password-btn" @click="resetPassword" :disabled="!isPasswordFormValid">재설정</button>
@@ -79,9 +81,22 @@
       validateName() {
         this.isNameValid = this.name.length > 0;
       },
+      // 전화번호 필드에 대한 유효성 검사
       validatePhone() {
         const phonePattern = /^01[0-9]-[0-9]{3,4}-[0-9]{4}$/;
         this.isPhoneValid = phonePattern.test(this.phone);
+      },
+      // 전화번호 입력 형식 자동 변경
+      formatPhoneNumber(type) {
+        let numbers = this[type].replace(/[^\d]/g, '');
+        let formatted = '';
+
+        for (let i = 0; i < numbers.length; i++) {
+          if (i === 3 || i === 7) formatted += '-';
+          formatted += numbers[i];
+        }
+
+        this[type] = formatted.slice(0, 13);
       },
       validateEmail() {
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

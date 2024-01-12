@@ -25,7 +25,7 @@
       </div>
       <div>
         <label for="phone">전화번호:</label>
-        <input type="text" id="phone" v-model="userData.phone" @input="validatePhone" :class="{ 'is-invalid': !isPhoneValid, 'is-valid': isPhoneValid }" required>
+        <input type="text" id="phone" v-model="userData.phone" @input="formatPhoneNumber" :class="{ 'is-invalid': !isPhoneValid, 'is-valid': isPhoneValid }" required>
         <p v-if="!isPhoneValid" class="warning-text">01x-xxxx-xxxx 형식으로 입력해주세요.</p>
       </div>
       <button type="submit" :disabled="!isFormValid" :class="{ 'button-active': isFormValid, 'button-inactive': !isFormValid }">등록</button>
@@ -103,6 +103,23 @@ export default {
     validatePhone() {
       const phonePattern = /^01[0-9]-[0-9]{3,4}-[0-9]{4}$/;
       this.isPhoneValid = phonePattern.test(this.userData.phone);
+    },
+    // 전화번호 입력 형식 자동 변경
+    formatPhoneNumber() {
+      let numbers = this.userData.phone.replace(/[^\d]/g, ''); // 숫자만 추출
+      let formatted = '';
+
+      // 숫자를 형식에 맞게 '-' 추가
+      for (let i = 0; i < numbers.length; i++) {
+        if (i === 3 || i === 7) formatted += '-'; // 특정 위치에 '-' 추가
+        formatted += numbers[i];
+      }
+
+      // 최대 길이 제한 (010-XXXX-XXXX)
+      this.userData.phone = formatted.slice(0, 13);
+
+      // 전화번호 형식 검증 메소드 호출
+      this.validatePhone();
     },
     register() {
       axios.post(`${process.env.VUE_APP_BACKEND_URL}/userregister`, this.userData)
