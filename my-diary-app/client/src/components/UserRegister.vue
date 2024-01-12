@@ -145,10 +145,9 @@ export default {
       // 전화번호 업데이트
       this.userData.phone = newValue;
 
-      // 커서 위치 조정
-      let delta = newValue.length - oldValue.length;
-      if (oldValue[cursorPosition - 1] === '-' && delta > 0) {
-        cursorPosition += delta;
+      // 커서 위치 조정 로직
+      if (oldValue.length < newValue.length && (cursorPosition === 4 || cursorPosition === 9)) {
+        cursorPosition++;
       }
 
       // 커서 위치 업데이트
