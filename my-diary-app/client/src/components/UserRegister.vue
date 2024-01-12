@@ -30,7 +30,6 @@
       </div>
       <button type="submit" :disabled="!isFormValid" :class="{ 'button-active': isFormValid, 'button-inactive': !isFormValid }">등록</button>
     </form>
-    <p v-if="errorMessage">{{ errorMessage }}</p>
   </div>
 </template>
 
