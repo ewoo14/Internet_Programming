@@ -25,8 +25,9 @@
       </div>
       <div>
         <label for="phone">전화번호:</label>
-        <input type="text" id="phone" v-model="userData.phone" @input="formatPhoneNumber" :class="{ 'is-invalid': !isPhoneValid, 'is-valid': isPhoneValid }" required>
+        <input type="text" id="phone" v-model="userData.phone" @input="formatPhoneNumber" :class="{ 'is-invalid': !isPhoneValid || phoneExists, 'is-valid': isPhoneValid && !phoneExists }" required>
         <p v-if="!isPhoneValid" class="warning-text">01x-xxxx-xxxx 형식으로 입력해주세요.</p>
+        <p v-else-if="phoneExists" class="warning-text">이미 사용 중인 전화번호입니다.</p>
       </div>
       <button type="submit" :disabled="!isFormValid" :class="{ 'button-active': isFormValid, 'button-inactive': !isFormValid }">등록</button>
     </form>
@@ -51,7 +52,7 @@ export default {
       isPasswordValid: false,
       isEmailValid: false,
       isPhoneValid: false,
-      errorMessage: ''
+      phoneExists: false,
     };
   },
   computed: {
@@ -60,7 +61,9 @@ export default {
         this.isEmailValid &&
         this.isPasswordValid &&
         this.isNameValid &&
-        this.isPhoneValid
+        this.isPhoneValid &&
+        !this.emailExists &&
+        !this.phoneExists
       );
     }
   },
@@ -102,6 +105,24 @@ export default {
     validatePhone() {
       const phonePattern = /^01[0-9]-[0-9]{3,4}-[0-9]{4}$/;
       this.isPhoneValid = phonePattern.test(this.userData.phone);
+
+      if (this.isPhoneValid) {
+        // 전화번호 형식이 유효한 경우, 데이터베이스에서 중복 확인
+        axios.get(`${process.env.VUE_APP_BACKEND_URL}/check-phone/${this.userData.phone}`)
+          .then(() => {
+            // 전화번호가 중복되지 않음
+            this.phoneExists = false;
+          })
+          .catch(error => {
+            if (error.response && error.response.status === 409) { // 409 Conflict - 전화번호 중복
+              this.phoneExists = true;
+            } else {
+              this.errorMessage = '전화번호 검증 중 오류가 발생했습니다.';
+              console.error('Error checking phone number:', error);
+              alert(this.errorMessage);
+            }
+          });
+      }
     },
     // 전화번호 입력 형식 자동 변경
     formatPhoneNumber() {
@@ -155,7 +176,6 @@ export default {
       this.userData.name = '';
       this.userData.phone = '';
       this.confirmPassword = '';
-      // 유효성 검사 상태도 초기화할 수 있습니다.
       this.isNameValid = false;
       this.isPasswordEntered = false;
       this.isPasswordValid = false;

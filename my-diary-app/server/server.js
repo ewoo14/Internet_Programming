@@ -351,6 +351,28 @@ async function initializeServer() {
     }
   });
 
+  // 전화번호 중복 확인 라우트
+  app.get('/check-phone/:phone', async (req, res) => {
+    const phoneToCheck = req.params.phone;
+
+    try {
+      const [results] = await db.query('SELECT * FROM users WHERE phone = ?', [phoneToCheck]);
+
+      if (results.length > 0) {
+        // 중복 전화번호가 이미 존재하는 경우
+        logAction(phoneToCheck, 'Phone number already exists');
+        return res.status(409).send({ message: '이미 사용 중인 전화번호입니다.' });
+      }
+
+      // 중복 전화번호가 존재하지 않는 경우
+      logAction(phoneToCheck, 'Phone number available');
+      res.status(200).send({ message: '사용 가능한 전화번호입니다.' });
+    } catch (err) {
+      logAction(phoneToCheck, `Server error on searching phone in database: ${err.message}`);
+      return res.status(500).send({ message: 'Server error' });
+    }
+  });
+
   // 로그인 라우트
   app.post('/userlogin', async (req, res) => {
     const { email, password } = req.body;
