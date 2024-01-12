@@ -10,7 +10,7 @@
               <p v-if="!isNameValid" class="warning-text">이름을 입력해주세요.</p>
             </div>
             <div>
-              <input type="text" placeholder="전화번호" class="input-field" v-model="phone" @input="formatPhoneNumber('phone'); validatePhone()" :class="{ 'is-invalid': !isPhoneValid, 'is-valid': isPhoneValid }" required>
+              <input type="text" placeholder="전화번호" class="input-field" v-model="phone" @input="formatPhoneNumber('phone', $event); validatePhone()" :class="{ 'is-invalid': !isPhoneValid, 'is-valid': isPhoneValid }" required>
               <p v-if="!isPhoneValid" class="warning-text">01x-xxxx-xxxx 형식으로 입력해주세요.</p>
             </div>
           </div>
@@ -33,7 +33,7 @@
             </div>
             <div>
               <div>
-                <input type="text" placeholder="전화번호" class="input-field" v-model="phoneForPassword" @input="formatPhoneNumber('phoneForPassword'); validatePhoneForPassword()" :class="{ 'is-invalid': !isPhoneForPasswordValid, 'is-valid': isPhoneForPasswordValid }" required>
+                <input type="text" placeholder="전화번호" class="input-field" v-model="phoneForPassword" @input="formatPhoneNumber('phoneForPassword', $event); validatePhoneForPassword()" :class="{ 'is-invalid': !isPhoneForPasswordValid, 'is-valid': isPhoneForPasswordValid }" required>
                 <p v-if="!isPhoneForPasswordValid" class="warning-text">01x-xxxx-xxxx 형식으로 입력해주세요.</p>
               </div>
             </div>
@@ -87,16 +87,42 @@
         this.isPhoneValid = phonePattern.test(this.phone);
       },
       // 전화번호 입력 형식 자동 변경
-      formatPhoneNumber(type) {
-        let numbers = this[type].replace(/[^\d]/g, '');
-        let formatted = '';
+      formatPhoneNumber(type, event) {
+        let cursorPosition = event.target.selectionStart; // 현재 커서 위치 저장
+        let oldValue = this[type];
+        let newValue = '';
 
+        // 숫자만 추출
+        let numbers = oldValue.replace(/[^\d]/g, '');
+
+        // 숫자를 형식에 맞게 '-' 추가
         for (let i = 0; i < numbers.length; i++) {
-          if (i === 3 || i === 7) formatted += '-';
-          formatted += numbers[i];
+          if (i === 3 || i === 7) newValue += '-';
+          newValue += numbers[i];
         }
 
-        this[type] = formatted.slice(0, 13);
+        // 최대 길이 제한 (010-XXXX-XXXX)
+        newValue = newValue.slice(0, 13);
+
+        // 전화번호 업데이트
+        this[type] = newValue;
+
+        // 커서 위치 조정
+        if (oldValue.length < newValue.length && (cursorPosition === 4 || cursorPosition === 9)) {
+          cursorPosition++;
+        }
+
+        // 커서 위치 업데이트
+        this.$nextTick(() => {
+          event.target.setSelectionRange(cursorPosition, cursorPosition);
+        });
+
+        // 전화번호 형식 검증 메소드 호출
+        if (type === 'phone') {
+          this.validatePhone();
+        } else if (type === 'phoneForPassword') {
+          this.validatePhoneForPassword();
+        }
       },
       validateEmail() {
         const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

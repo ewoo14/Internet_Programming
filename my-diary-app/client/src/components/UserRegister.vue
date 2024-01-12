@@ -125,18 +125,36 @@ export default {
       }
     },
     // 전화번호 입력 형식 자동 변경
-    formatPhoneNumber() {
-      let numbers = this.userData.phone.replace(/[^\d]/g, ''); // 숫자만 추출
-      let formatted = '';
+    formatPhoneNumber(event) {
+      let cursorPosition = event.target.selectionStart; // 현재 커서 위치 저장
+      let oldValue = this.userData.phone;
+      let newValue = '';
+      
+      // 숫자만 추출
+      let numbers = oldValue.replace(/[^\d]/g, '');
 
       // 숫자를 형식에 맞게 '-' 추가
       for (let i = 0; i < numbers.length; i++) {
-        if (i === 3 || i === 7) formatted += '-'; // 특정 위치에 '-' 추가
-        formatted += numbers[i];
+        if (i === 3 || i === 7) newValue += '-';
+        newValue += numbers[i];
       }
 
       // 최대 길이 제한 (010-XXXX-XXXX)
-      this.userData.phone = formatted.slice(0, 13);
+      newValue = newValue.slice(0, 13);
+
+      // 전화번호 업데이트
+      this.userData.phone = newValue;
+
+      // 커서 위치 조정
+      let delta = newValue.length - oldValue.length;
+      if (oldValue[cursorPosition - 1] === '-' && delta > 0) {
+        cursorPosition += delta;
+      }
+
+      // 커서 위치 업데이트
+      this.$nextTick(() => {
+        event.target.setSelectionRange(cursorPosition, cursorPosition);
+      });
 
       // 전화번호 형식 검증 메소드 호출
       this.validatePhone();
